@@ -1,0 +1,103 @@
+{% extends "ArcservePatchBuilder/layout.html" %}
+
+{% block scripts%}
+
+<script>
+
+$(document).ready(function(){
+    $.validator.setDefaults({
+    submitHandler: function() {
+        $("#uploadpatchform").submit();
+    }
+    });
+
+    $.validator.methods.email = function(value, element){
+        return this.optional(element) || value.toLowerCase().endsWith("arcserve.com");
+    }
+
+    $.validator.addMethod("patch", function(value, element){
+        return this.optional(element) || /^[tp][0-9]{8}/.test(value.toLowerCase());
+    }, "patch name is not correct. it should be <patch name>.zip or <patch name>.caz, e.g.T00009527.caz  P00009527.zip.");
+
+    $("#uploadpatchform").validate({
+        rules:{
+            version: "required",
+            email: {
+                required: "#chkemail:checked",
+                email: true
+            },
+           
+            patch: {
+                required: true,
+                extension: "zip|caz",
+                patch: true
+            },
+        }, 
+        messages: {
+            email: "please enter a valid email address, and only arcserve.com is supported.",
+            
+
+        }
+    });
+    
+    $("#chkemail").click(function(){
+        if ($(this).is(":checked")){
+            $("#lblemail").text("Enter your email address: ");
+            $("#email").prop('disabled', false);
+            $("#pemail").show();
+        }
+        else{
+            $("#pemail").hide();
+            $("#lblemail").text("Email me after finish.");
+            $("#email").val("")
+            $("#email").prop('disabled', true);
+        }
+    });
+});
+</script>
+<style>
+    .error{
+        color:red;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h2>ASBU Patch Builder</h2>
+<form method="POST" id="uploadpatchform" enctype="multipart/form-data">
+    {% csrf_token %}
+        <div class="form-group">
+            <p>Note:<br>
+                your fix to Txxxxxxxx.zip <br>
+                examples....
+        </p><br>
+        </div>
+        <div class="form-group">
+            <label for="version">Patch Version:</label><br>
+            <select id="version" name="version">
+                <option value="18.0">18.0</option>
+                <option value="17.5.1">17.5.1</option>
+                <option value="17.5">17.5</option>
+                <option value="17.0">17.0</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <input type="checkbox" name ="chkemail" id="chkemail" />
+            <label for="email" id="lblemail">
+                Email me after finish.
+            </label>
+            <label id=pemail hidden>
+                <input name="email" type="email" id="email" >
+            </label>
+        </div>
+        <div class="form-group">
+            <input id="patch" name="patch" type="file" value="upload"> <br>
+
+            <input type="submit" id=btnsubmit value="upload">
+        </div>
+</form>
+
+{%endblock%}
+

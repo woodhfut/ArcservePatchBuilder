@@ -120,4 +120,5 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-SUPPORTED_VERSIONS = ['18.0', '17.5.1', '17.5', '17.0']
+PATCH_SUPPORTED_VERSIONS = ['18.0', '17.5.1', '17.5', '17.0']
+PATCH_SUPPORTED_EXTENSIONS = ['caz', 'zip']

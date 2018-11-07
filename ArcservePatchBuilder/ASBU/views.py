@@ -7,18 +7,23 @@ import threading
 from .tasks import add
 
 def index(request):
-    if request.method =='POST':
-        form = UploadPatchForm(request.POST, request.FILES)
-        if form.is_valid():
-            patchname = form.cleaned_data['patch'].name
-            threading.Thread(target=handle_uploaded_patch, args=(request.FILES['patch'], patchname)).start()
-            add.delay(3,5)
-            return render(request, 'ASBU/status.html', {})
+    # if request.method =='POST':
+    #     form = UploadPatchForm(request.POST, request.FILES)
+    #     if form.is_valid():
+    #         patchname = form.cleaned_data['patch'].name
+    #         #threading.Thread(target=handle_uploaded_patch, args=(request.FILES['patch'], patchname)).start()
+    #         handle_uploaded_patch(request.FILES['patch'], patchname)
+    #         return render(request, 'ASBU/index.html', {
+    #             'version': form.cleaned_data['version'],
+    #             'email': form.cleaned_data['email'],
+    #             'patch': patchname,
+    #             'result': True,
+    #         })
             
-        else:
-            return HttpResponse('invalid form')
-    else:
-        return render(request, 'ASBU/index.html', {})
+    #     else:
+    #         return HttpResponse('invalid form')
+    # else:
+    return render(request, 'ASBU/index.html', {})
 
 
 def handle_uploaded_patch(f,name):

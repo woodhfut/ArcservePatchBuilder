@@ -5,11 +5,11 @@
 <script>
 
 $(document).ready(function(){
-    $.validator.setDefaults({
-    submitHandler: function() {
-        $("#uploadpatchform").submit();
-    }
-    });
+    // $.validator.setDefaults({
+    // submitHandler: function() {
+    //     $("#uploadpatchform").submit();
+    // }
+    // });
 
     $.validator.methods.email = function(value, element){
         return this.optional(element) || value.toLowerCase().endsWith("arcserve.com");
@@ -17,7 +17,7 @@ $(document).ready(function(){
 
     $.validator.addMethod("patch", function(value, element){
         return this.optional(element) || /^[tp][0-9]{8}/.test(value.toLowerCase());
-    }, "patch name is not correct. it should be <patch name>.zip or <patch name>.caz, e.g.T00009527.caz  P00009527.zip.");
+    }, "patch name is not correct. it should be <patch name>.zip, e.g.T00009527.zip  P00009527.zip.");
 
     $("#uploadpatchform").validate({
         rules:{
@@ -29,7 +29,7 @@ $(document).ready(function(){
            
             patch: {
                 required: true,
-                extension: "zip|caz",
+                extension: "zip",
                 patch: true
             },
         }, 
@@ -53,6 +53,72 @@ $(document).ready(function(){
             $("#email").prop('disabled', true);
         }
     });
+    // if("{{version}}")
+    //     $("#version").val("{{version}}");
+    // if ("{{email}}" !="")
+    // {
+    //     $("#chkemail").prop("checked", true);
+    //     $("#lblemail").text("Enter your email address: ");
+    //     $("#email").prop('disabled', false);
+    //     $("#pemail").show();
+    //     $("#email").val("{{email}}");
+    // }
+    // if ("{{patch}}")
+    // {
+    //     $("#btnsubmit").prop('disabled', true);
+    // }
+
+    var ws_scheme = window.location.protocol == "https:"? "wss": "ws";
+    var ws_path = ws_scheme + "://" + window.location.host + "/ws/asbu/"
+    console.log("connecting to " + ws_path)
+    var wsock = new WebSocket(ws_path);
+
+    wsock.onmessage = function(e){
+        var msg = e.data;
+        console.log('msg: ' + msg)
+        //var msg = data['message'];
+        $("#results").append("<span>" + msg+"</span><br/>")
+
+    }
+    wsock.onclose = function(e){
+        console.error('websocket get closed unexpectedly.')
+    }
+
+    $("#btnsubmit").click(function(){
+        $("#results").show();
+        $("#results").text('Status as below: <br/>')
+        //patch version
+        var version = $("#version").val();
+        wsock.send(JSON.stringify({
+            'receiver': 'version',
+            'data': version
+        }));
+        if ($("#chkemail").is(":checked"))
+        {
+            wsock.send(JSON.stringify({
+                'receiver': 'email',
+                'data': $("#email").val(),
+            }));
+        }
+        var file = document.getElementById('patch').files[0];
+        var reader = new FileReader();
+        var rawData = new ArrayBuffer();
+        reader.loadend = function(){
+
+        }
+
+        reader.onload = function(e){
+            rawData = e.target.result;
+            wsock.send(JSON.stringify({
+                'receiver': 'patch',
+                'name' : $("#patch").val()
+            }));
+            wsock.send(rawData);
+            
+        }
+        reader.readAsArrayBuffer(file);
+    });
+
 });
 </script>
 <style>
@@ -93,9 +159,12 @@ $(document).ready(function(){
             </label>
         </div>
         <div class="form-group">
-            <input id="patch" name="patch" type="file" value="upload"> <br>
 
-            <input type="submit" id=btnsubmit value="upload">
+            <input id="patch" name="patch" type="file"> <br>
+            <input type="button" id=btnsubmit value="upload">
+        </div>
+        <div class="form-group">
+            <p id="results" cols="100" rows="100" hidden>status as below: <br></p>
         </div>
 </form>
 

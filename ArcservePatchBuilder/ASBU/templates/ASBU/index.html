@@ -84,7 +84,7 @@ $(document).ready(function(){
         wsock.onmessage = function(e){
             var msg = JSON.parse(e.data);
             msgType = msg['msgType'].toLowerCase();
-            console.log('recv msgType: ' + msgType)
+            
             if ( msgType== 'error')
                 $("#results").append("<span class='error'>" + msg['message'] +"</span><br>")
             else if (msgType == 'patchstatus')

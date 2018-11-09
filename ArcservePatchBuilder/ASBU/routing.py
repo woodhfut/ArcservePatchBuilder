@@ -3,5 +3,5 @@ from . import consumers
 
 
 websocket_urlpatterns = [
-    url(r'^(?i)ws/asbu/$', consumers.ASBUStatusConsumer),
+    url(r'^(?i)ws/asbu/[tp]\d{8}/$', consumers.ASBUStatusConsumer),
 ]

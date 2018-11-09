@@ -7,6 +7,13 @@ from . import globals
 from multiprocessing.pool import Pool, ThreadPool
 
 class ASBUStatusConsumer(WebsocketConsumer):
+    def __init__(self,*args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._version = None
+        self._email = None
+        self._name = None
+        self._uploadFinished = False
+
     def connect(self):
         self.accept()
     
@@ -22,27 +29,48 @@ class ASBUStatusConsumer(WebsocketConsumer):
             if receiver == 'version':
                 self._version = text_data_json['data']
                 print('version: ' + self._version )
-                self.send('received patch version: ' + self._version)
+                self.send(json.dumps({
+                    'msgType': 'PatchStatus',
+                    'message': 'received patch version: ' + self._version
+                }))
             elif receiver == 'email':
                 self._email = text_data_json['data']
                 print('email: ' + self._email)
-                self.send('received email: ' + self._email)
+                self.send(json.dumps({
+                    'msgType': 'PatchStatus',
+                    'message' : 'received email: ' + self._email
+                }))
             elif receiver == 'patch':
-                print('name:' + text_data_json['name'])
-                idx = text_data_json['name'].rindex('\\')
-                self._name = text_data_json['name'][idx+1:]
-                self.send('received patch name : ' + self._name)
+                if 'name' in text_data_json:
+                    print('name:' + text_data_json['name'])
+                    idx = text_data_json['name'].rindex('\\')
+                    self._name = text_data_json['name'][idx+1:]
+                    self.send(json.dumps({
+                        'msgType': 'PatchStatus',
+                        'message': 'received patch name : ' + self._name
+                    }))
+                    patchpath = os.path.join(settings.PATCH_ROOT_URL, self._name)
+                    if os.path.exists(patchpath):
+                        os.remove(patchpath)
+                elif 'uploadFinished' in text_data_json and text_data_json['uploadFinished']:
+                    self._uploadFinished = True
+                    self._unzip_patchfile()
+                    #self._create_patch(self._name)
             else:
                 print('unknown receiver.')
         if bytes_data:
-            print('about to receive file data...')
+            print('received file data size...' + str(len(bytes_data)))
+            # self.send(json.dumps({
+            #     'msgType': 'PatchStatus',
+            #     'message' : 'start uploading patch: ' + self._name
+            # }))
             self._handle_patch_data(bytes_data)
-            self._unzip_patchfile()
-            self._create_patch(self._name)
-            
-
+                
     def _create_patch(self, name):
-        self.send('start creating patch...')
+        self.send(json.dumps({
+            'msgType': 'PatchStatus',
+            'message': 'start creating patch...'
+        }))
         if name.find('.') == -1:
             fixname = name
         else:
@@ -78,12 +106,18 @@ class ASBUStatusConsumer(WebsocketConsumer):
             pool.join()
         else:
             print('fix path {} doesnot exists... maybe something wrong when unzip the patch. '.format(fixpath))
-            self.send('fix path {} doesnot exists... maybe something wrong when unzip the patch. '.format(fixpath))
+            self.send(json.dumps({
+                'msgType': 'Error',
+                'message': 'fix path {} doesnot exists... maybe something wrong when unzip the patch. '.format(fixpath)
+            }))
             self.close()
             return
         if len(results)==0 or all([x.get()[1] for x in results]):
             print('all binaries get signed successfully...')
-            self.send('all binaries get signed successfully...')
+            self.send(json.dumps({
+                'msgType': 'PatchStatus',
+                'message': 'all binaries get signed successfully...'
+            }))
             print('start to create .caz file.')
         else:
             for ar in results:
@@ -94,18 +128,36 @@ class ASBUStatusConsumer(WebsocketConsumer):
             return
 
     def _handle_patch_data(self,data):
-        self.send('start uploading patch: ' + self._name)
-        patchpath = os.path.join(settings.PATCH_ROOT_URL, self._name)
-        with open(patchpath, 'wb') as patch:
-            patch.write(data)
-        self.send('patch {} uploaded successfully.'.format(self._name))
+        if not self._uploadFinished:
+            patchpath = os.path.join(settings.PATCH_ROOT_URL, self._name)
+
+            with open(patchpath, 'ab') as patch:
+                patch.write(data)
+            self.send(json.dumps({
+                'msgType': 'UploadStatus',
+                'message': 'progress'
+            }))
+        else:
+            self.send(json.dumps({
+                'msgType' : 'UploadStatus',
+                'message' : 'Done'
+            }))
     
     def _unzip_patchfile(self):
-        self.send('start unzip patch ' + self._name)
+        self.send(json.dumps({
+            'msgType': 'PatchStatus',
+            'message': 'start unzip patch ' + self._name
+        }))
         try:
             shutil.unpack_archive(os.path.join(settings.PATCH_ROOT_URL, self._name), extract_dir=settings.PATCH_ROOT_URL)
         except Exception as ex:
-            self.send('Failed to unzip the patch {}, exit!'.format(self._name))
+            self.send(json.dumps({
+                'msgType' : 'Error',
+                'message' : 'Failed to unzip the patch {}, exit!'.format(self._name)
+            }))
             self.close()
             return
-        self.send('patch {} unzipped successfully.'.format(self._name))
+        self.send(json.dumps({
+            'msgType' : 'PatchStatus',
+            'message' : 'patch {} unzipped successfully.'.format(self._name)
+        }))

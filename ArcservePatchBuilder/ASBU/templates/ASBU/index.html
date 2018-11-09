@@ -68,26 +68,77 @@ $(document).ready(function(){
     //     $("#btnsubmit").prop('disabled', true);
     // }
 
-    var ws_scheme = window.location.protocol == "https:"? "wss": "ws";
-    var ws_path = ws_scheme + "://" + window.location.host + "/ws/asbu/"
-    console.log("connecting to " + ws_path)
-    var wsock = new WebSocket(ws_path);
-
-    wsock.onmessage = function(e){
-        var msg = e.data;
-        console.log('msg: ' + msg)
-        //var msg = data['message'];
-        $("#results").append("<span>" + msg+"</span><br/>")
-
-    }
-    wsock.onclose = function(e){
-        console.error('websocket get closed unexpectedly.')
-    }
-
     $("#btnsubmit").click(function(){
         $("#results").show();
-        $("#results").text('Status as below: <br/>')
-        //patch version
+        $("#results").text('Status as below:')
+        $("#results").append('<br>')
+        var rindex1 = $("#patch").val().lastIndexOf('\\')
+        var rindex2 = $("#patch").val().lastIndexOf('.')
+        var patchname = $("#patch").val().substring(rindex1+1, rindex2)
+        console.log('patch name' + patchname);
+        var ws_scheme = window.location.protocol == "https:"? "wss": "ws";
+        var ws_path = ws_scheme + "://" + window.location.host + "/ws/asbu/"+ patchname + "/";
+        console.log("connecting to " + ws_path)
+        var wsock = new WebSocket(ws_path);
+        var tfile = document.getElementById('patch').files[0];
+        console.log(tfile.name +":"+ tfile.size);
+        var chunk_size = 1024*1024; //1MB
+        var reader = new FileReader();
+        var rawData = new ArrayBuffer();
+        var end = chunk_size;    
+        var slice = tfile.slice(0, end);
+
+
+        wsock.onmessage = function(e){
+            var msg = JSON.parse(e.data);
+            msgType = msg['msgType'].toLowerCase();
+            if ( msgType== 'error')
+                $("#results").append("<span class='error'>" + msg['message'] +"</span><br>")
+            else if (msgType == 'patchstatus')
+                $("#results").append("<span class='info'>" + msg['message'] +"</span><br>")
+            else if (msgType == 'uploadstatus')
+            {    
+                var message = msg['message'].toLowerCase();
+                if ( message== 'progress')
+                {
+                    if (tfile.size == end)
+                    {
+                        wsock.send(JSON.stringify({
+                            'receiver': 'patch',
+                            'uploadFinished': true
+                        }));
+                        console.log('patch uploaded successfully.');    
+                        return;
+                    }
+
+                    if (tfile.size - end >chunk_size)
+                    {
+                        slice = tfile.slice(end, end+chunk_size);
+                        end += chunk_size;    
+                    }
+                    else
+                    {
+                        slice = tfile.slice(end, tfile.size);
+                        end =tfile.size;
+                    }
+                    reader.readAsArrayBuffer(slice);
+                    $("#results").append('<span class="info">' + end + 'Bytes sent. </span><br>');
+                }
+                else if (message == 'done')
+                {
+                    console.log('patch uploaded successfully.')
+                }
+            }
+        }
+        wsock.onclose = function(e){
+            console.error('websocket get closed unexpectedly.')
+            
+        }
+        wsock.onerror = function(e){
+            $("#results").append("<span style='color:red'>" + 'error occurred in websocket..' + "</span>")
+        }
+        wsock.onopen = function(e){
+            //patch version
         var version = $("#version").val();
         wsock.send(JSON.stringify({
             'receiver': 'version',
@@ -100,23 +151,23 @@ $(document).ready(function(){
                 'data': $("#email").val(),
             }));
         }
-        var file = document.getElementById('patch').files[0];
-        var reader = new FileReader();
-        var rawData = new ArrayBuffer();
-        reader.loadend = function(){
-
-        }
-
+        
         reader.onload = function(e){
             rawData = e.target.result;
-            wsock.send(JSON.stringify({
-                'receiver': 'patch',
-                'name' : $("#patch").val()
-            }));
             wsock.send(rawData);
             
         }
-        reader.readAsArrayBuffer(file);
+
+        
+        
+        reader.readAsArrayBuffer(slice);
+        wsock.send(JSON.stringify({
+                'receiver': 'patch',
+                'name' : $("#patch").val()
+            }));
+        $("#results").append('<span class="info">' + end + 'Byte sent. </span><br>');
+            
+        }
     });
 
 });
@@ -124,6 +175,10 @@ $(document).ready(function(){
 <style>
     .error{
         color:red;
+    }
+
+    .info{
+        color: skyblue;
     }
 </style>
 {% endblock %}

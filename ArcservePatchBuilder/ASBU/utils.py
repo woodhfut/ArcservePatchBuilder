@@ -5,18 +5,42 @@ import requests
 from requests_ntlm import HttpNtlmAuth
 from bs4 import BeautifulSoup
 from django.conf import settings
+import zipfile
+import errno
+import channels
+import channels.layers
+from asgiref.sync import async_to_sync
+import json
 
-apm_version_path = {
-    '16.5.1' : r'APM\APMr16.5sp1\build7003',
-    '17.0' : r'APM\APMr17\build7067',
-    '17.5' : r'APM\APMr17.5\build7861',
-    '17.5.1' : r'APM\APMr17.5SP1\build7903',
-    '18.0': r'APM\APMr18\APMr18\build8001',
-}
+def unzipBigPatchFile(zipsrc, extract_dst, consumer):
+    #print('channel name in utils: ' + channel_name)
+    with open(zipsrc,'rb') as src:
+        zfile = zipfile.ZipFile(src)
+        
+        filecount = len([f for f in zfile.infolist() if not f.filename.endswith('/')])
+        count = 0
+        for member in zfile.infolist():
+            dst = os.path.join(extract_dst, member.filename)
+            #print('unzip dst : ' + dst)
+            if dst.endswith('/'):
+                try:
+                    os.makedirs(dst)
+                except (OSError, IOError) as err:
+                    if err.errno != errno.EEXIST:
+                        raise
+                continue
+            with open(dst, 'wb') as outfile, zfile.open(member) as infile:
+                shutil.copyfileobj(infile, outfile)
+            count +=1
+            # async_to_sync(ch.send)(channel_name,{
+            #     'msgType': 'UnzipStatus',
+            #     'message': str(count)+'/' + str(filecount)
+            # })
+            consumer.send(json.dumps({
+                'msgType': 'UnzipStatus',
+                'message': str(count)+'/' + str(filecount)
+            }))
 
-url = 'http://rmdm-bldvm-l901:8000/sign4dev.aspx'
-account = 'qiang.liu@arcserve.com'
-password ='godsaveme@123'
 
 def isBinarySigned(bin):
     cmd = os.path.join(settings.PATCH_ROOT_URL,'sigcheck.exe') +' ' + bin
@@ -53,9 +77,9 @@ def signBinary(bin):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36',
     }
     s = requests.Session()
-    s.auth =HttpNtlmAuth(account,password)
+    s.auth =HttpNtlmAuth(settings.ACCOUNT,settings.PASSWORD)
     try:
-        r = s.get(url,headers = headers )
+        r = s.get(settings.SIGN_URL,headers = headers )
         print('get status code for {} is {}'.format(bin, r.status_code))
         if r.status_code == 200:
             soup =  BeautifulSoup(r.text,'html.parser')
@@ -69,7 +93,7 @@ def signBinary(bin):
                     '__EVENTVALIDATION':ev,       
                     'Button1':'Upload File',
                 }
-                r = s.post(url,files = files, data=data)
+                r = s.post(settings.SIGN_URL,files = files, data=data)
             print(r.status_code)
             if r.status_code == 200:
                 soup = BeautifulSoup(r.text, 'html.parser')
@@ -121,7 +145,7 @@ def signBinary(bin):
             else:
                 print('failed to post data, ret={}'.format(r.status_code))
         else:
-            print('failed to get from {}, ret ={}'.format(url, r.status_code))
+            print('failed to get from {}, ret ={}'.format(settings.SIGN_URL, r.status_code))
     except Exception as ex:
         print('error occurred: {}'.format(ex))
     finally:

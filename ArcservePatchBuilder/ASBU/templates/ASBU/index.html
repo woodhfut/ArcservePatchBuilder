@@ -53,25 +53,16 @@ $(document).ready(function(){
             $("#email").prop('disabled', true);
         }
     });
-    // if("{{version}}")
-    //     $("#version").val("{{version}}");
-    // if ("{{email}}" !="")
-    // {
-    //     $("#chkemail").prop("checked", true);
-    //     $("#lblemail").text("Enter your email address: ");
-    //     $("#email").prop('disabled', false);
-    //     $("#pemail").show();
-    //     $("#email").val("{{email}}");
-    // }
-    // if ("{{patch}}")
-    // {
-    //     $("#btnsubmit").prop('disabled', true);
-    // }
 
     $("#btnsubmit").click(function(){
+        if ($("#patch").val()=="")
+        {
+            alert('no patch selected. ')
+            return;
+        }
         $("#results").show();
-        $("#results").text('Status as below:')
-        $("#results").append('<br>')
+        $("#results").append("<span'> Status as below: </span><br>");
+        $(this).prop('disabled', true);
         var rindex1 = $("#patch").val().lastIndexOf('\\')
         var rindex2 = $("#patch").val().lastIndexOf('.')
         var patchname = $("#patch").val().substring(rindex1+1, rindex2)
@@ -82,16 +73,18 @@ $(document).ready(function(){
         var wsock = new WebSocket(ws_path);
         var tfile = document.getElementById('patch').files[0];
         console.log(tfile.name +":"+ tfile.size);
-        var chunk_size = 1024*1024; //1MB
+        var chunk_size = 4*1024*1024; //4MB
         var reader = new FileReader();
         var rawData = new ArrayBuffer();
         var end = chunk_size;    
         var slice = tfile.slice(0, end);
-        var progressbarExists = false;
+        var uploadbarExists = false;
+        var unzipbarExists = false;
 
         wsock.onmessage = function(e){
             var msg = JSON.parse(e.data);
             msgType = msg['msgType'].toLowerCase();
+            console.log('recv msgType: ' + msgType)
             if ( msgType== 'error')
                 $("#results").append("<span class='error'>" + msg['message'] +"</span><br>")
             else if (msgType == 'patchstatus')
@@ -99,13 +92,12 @@ $(document).ready(function(){
             else if (msgType == 'uploadstatus')
             {    
                 var message = msg['message'].toLowerCase();
-                if (!progressbarExists)
+                if (!uploadbarExists)
                 {
-                    $("#results").append('<span id="uploadProgress" class="info">' + end + '/' + tfile.size + ' bytes sent. </span><br>');
-                    progressbarExists = true;
-           
+                    $("#results").append('<span id="uploadProgress" class="info">' + (end*100/tfile.size).toFixed(2) +'% (' + end + '/' + tfile.size + ') bytes uploaded. </span><br>');
+                    uploadbarExists = true;         
                 }
-                if ( message== 'progress')
+                if (message== 'progress')
                 {
                     if (tfile.size == end)
                     {
@@ -113,7 +105,8 @@ $(document).ready(function(){
                             'receiver': 'patch',
                             'uploadFinished': true
                         }));
-                        console.log('patch uploaded successfully.');    
+                        console.log('patch uploaded successfully.');   
+                        $("#results").append('<span class="info"> patch uploaded successfully.</span><br>') 
                         return;
                     }
 
@@ -128,12 +121,26 @@ $(document).ready(function(){
                         end =tfile.size;
                     }
                     reader.readAsArrayBuffer(slice);
-                    $("#results span#uploadProgress").text(end + '/' + tfile.size + ' bytes uploaded.');
+                    $("#results span#uploadProgress").text((end*100/tfile.size).toFixed(2) +'% (' + end + '/' + tfile.size + ') bytes uploaded.');
                 }
                 else if (message == 'done')
                 {
                     console.log('patch uploaded successfully.')
                 }
+            }
+            else if (msgType == 'unzipstatus')
+            {
+                var message = msg['message']
+                if (!unzipbarExists)
+                {
+                    $("#results").append("<span id='unzipstatus' class = 'info'>" + message + " files unzipped. </span><br>");
+                    unzipbarExists = true
+                }
+                else
+                {
+                    $("#results span#unzipstatus").text(message + " files unzipped.")
+                }
+                
             }
         }
         wsock.onclose = function(e){
@@ -220,7 +227,7 @@ $(document).ready(function(){
             <input type="button" id=btnsubmit value="upload">
         </div>
         <div class="form-group">
-            <p id="results" cols="100" rows="100" hidden>status as below: <br></p>
+            <p id="results" cols="100" rows="100" hidden></p>
         </div>
 </form>
 

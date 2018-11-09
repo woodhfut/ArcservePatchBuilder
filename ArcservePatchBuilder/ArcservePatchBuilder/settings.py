@@ -144,3 +144,20 @@ CHANNEL_LAYERS = {
         }
     }
 }
+
+APM_VERSION_PATH = {
+    '16.5.1' : r'APM\APMr16.5sp1\build7003',
+    '17.0' : r'APM\APMr17\build7067',
+    '17.5' : r'APM\APMr17.5\build7861',
+    '17.5.1' : r'APM\APMr17.5SP1\build7903',
+    '18.0': r'APM\APMr18\APMr18\build8001',
+}
+
+SIGN_URL = 'http://rmdm-bldvm-l901:8000/sign4dev.aspx'
+SIGN_ACCOUNT = 'qiang.liu@arcserve.com'
+SIGN_PASSWORD ='godsaveme@123'
+
+ZIP_FILE_THRESHOLD = 100*1024*1024  #zip file larger than 100MB, we will not try to load it to memery and unzip directly. 
+                                    #so that we can have progress update in GUI.
+
+

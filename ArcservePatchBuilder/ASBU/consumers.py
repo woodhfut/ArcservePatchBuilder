@@ -3,7 +3,8 @@ import json
 from django.conf import settings
 import os
 import shutil
-from . import globals
+from . import utils
+
 from multiprocessing.pool import Pool, ThreadPool
 
 class ASBUStatusConsumer(WebsocketConsumer):
@@ -15,6 +16,7 @@ class ASBUStatusConsumer(WebsocketConsumer):
         self._uploadFinished = False
 
     def connect(self):
+        print('channel name: ' + self.channel_name)
         self.accept()
     
     def disconnect(self, close_code):
@@ -59,7 +61,7 @@ class ASBUStatusConsumer(WebsocketConsumer):
             else:
                 print('unknown receiver.')
         if bytes_data:
-            print('received file data size...' + str(len(bytes_data)))
+            #print('received file data size...' + str(len(bytes_data)))
             # self.send(json.dumps({
             #     'msgType': 'PatchStatus',
             #     'message' : 'start uploading patch: ' + self._name
@@ -97,9 +99,9 @@ class ASBUStatusConsumer(WebsocketConsumer):
             
             pool = ThreadPool(processes=len(files))
             for f in files:
-                if not f.lower().endswith('.txt'):# and not globals.isBinarySigned(f):
+                if not f.lower().endswith('.txt'):# and not utils.isBinarySigned(f):
                     print('trying to sign file ' + f)
-                    ar = pool.apply_async(globals.signBinary, (f,))
+                    ar = pool.apply_async(utils.signBinary, (f,))
                     results.append(ar)
             
             pool.close()
@@ -149,11 +151,14 @@ class ASBUStatusConsumer(WebsocketConsumer):
             'message': 'start unzip patch ' + self._name
         }))
         try:
-            shutil.unpack_archive(os.path.join(settings.PATCH_ROOT_URL, self._name), extract_dir=settings.PATCH_ROOT_URL)
+            if os.path.getsize(os.path.join(settings.PATCH_ROOT_URL, self._name)) > settings.ZIP_FILE_THRESHOLD:
+                utils.unzipBigPatchFile(os.path.join(settings.PATCH_ROOT_URL, self._name), settings.PATCH_ROOT_URL, self)
+            else:
+                shutil.unpack_archive(os.path.join(settings.PATCH_ROOT_URL, self._name), extract_dir=settings.PATCH_ROOT_URL)
         except Exception as ex:
             self.send(json.dumps({
                 'msgType' : 'Error',
-                'message' : 'Failed to unzip the patch {}, exit!'.format(self._name)
+                'message' : 'Failed to unzip the patch {}, exit!\n {}'.format(self._name, ex)
             }))
             self.close()
             return

@@ -87,7 +87,7 @@ $(document).ready(function(){
         var rawData = new ArrayBuffer();
         var end = chunk_size;    
         var slice = tfile.slice(0, end);
-
+        var progressbarExists = false;
 
         wsock.onmessage = function(e){
             var msg = JSON.parse(e.data);
@@ -99,6 +99,12 @@ $(document).ready(function(){
             else if (msgType == 'uploadstatus')
             {    
                 var message = msg['message'].toLowerCase();
+                if (!progressbarExists)
+                {
+                    $("#results").append('<span id="uploadProgress" class="info">' + end + '/' + tfile.size + ' bytes sent. </span><br>');
+                    progressbarExists = true;
+           
+                }
                 if ( message== 'progress')
                 {
                     if (tfile.size == end)
@@ -122,7 +128,7 @@ $(document).ready(function(){
                         end =tfile.size;
                     }
                     reader.readAsArrayBuffer(slice);
-                    $("#results").append('<span class="info">' + end + 'Bytes sent. </span><br>');
+                    $("#results span#uploadProgress").text(end + '/' + tfile.size + ' bytes uploaded.');
                 }
                 else if (message == 'done')
                 {
@@ -139,35 +145,30 @@ $(document).ready(function(){
         }
         wsock.onopen = function(e){
             //patch version
-        var version = $("#version").val();
-        wsock.send(JSON.stringify({
-            'receiver': 'version',
-            'data': version
-        }));
-        if ($("#chkemail").is(":checked"))
-        {
+            var version = $("#version").val();
             wsock.send(JSON.stringify({
-                'receiver': 'email',
-                'data': $("#email").val(),
+                'receiver': 'version',
+                'data': version
             }));
-        }
-        
-        reader.onload = function(e){
-            rawData = e.target.result;
-            wsock.send(rawData);
+            if ($("#chkemail").is(":checked"))
+            {
+                wsock.send(JSON.stringify({
+                    'receiver': 'email',
+                    'data': $("#email").val(),
+                }));
+            }
             
-        }
-
-        
-        
-        reader.readAsArrayBuffer(slice);
-        wsock.send(JSON.stringify({
-                'receiver': 'patch',
-                'name' : $("#patch").val()
-            }));
-        $("#results").append('<span class="info">' + end + 'Byte sent. </span><br>');
-            
-        }
+            reader.onload = function(e){
+                rawData = e.target.result;
+                wsock.send(rawData);
+                
+            }
+            reader.readAsArrayBuffer(slice);
+            wsock.send(JSON.stringify({
+                    'receiver': 'patch',
+                    'name' : $("#patch").val()
+                }));     
+            }
     });
 
 });

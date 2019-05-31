@@ -4,6 +4,7 @@ from django.conf import settings
 import os
 import shutil
 from . import utils
+import subprocess
 
 from multiprocessing.pool import Pool, ThreadPool
 
@@ -57,7 +58,7 @@ class ASBUStatusConsumer(WebsocketConsumer):
                 elif 'uploadFinished' in text_data_json and text_data_json['uploadFinished']:
                     self._uploadFinished = True
                     self._unzip_patchfile()
-                    #self._create_patch(self._name)
+                    self._create_patch(self._name)
             else:
                 print('unknown receiver.')
         if bytes_data:
@@ -88,24 +89,31 @@ class ASBUStatusConsumer(WebsocketConsumer):
                     if not f.lower() == fixname.lower()+'.exe': #ignore the created patch file, in case we run the same patch multiple times.
                         files.append(os.path.join(dirpath, f))
             
-            print(files)
+            #print(files)
             if any(f.lower().endswith(fixname.lower() + '.txt') for f in files):
                 print('{} exists, good to go. '.format(fixname+ '.txt'))
             else:
                 print('{} is not included, invalid patch zip.'.format(fixname + '.txt'))
-                self.send('{} is not included, invalid patch zip.'.format(fixname + '.txt'))
+                self.send(json.dumps({
+                    'msgType': 'Error',
+                    'message': '{} is not included, invalid patch zip.'.format(fixname + '.txt')
+                }))
                 self.close()
                 return
             
             pool = ThreadPool(processes=len(files))
             for f in files:
-                if not f.lower().endswith('.txt'):# and not utils.isBinarySigned(f):
+                if not f.lower().endswith('.txt') and not utils.isBinarySigned(f):
                     print('trying to sign file ' + f)
                     ar = pool.apply_async(utils.signBinary, (f,))
                     results.append(ar)
             
             pool.close()
             pool.join()
+            self.send(json.dumps({
+                'msgType': 'PatchStatus',
+                'message': 'start signing the binaries...'
+            }))
         else:
             print('fix path {} doesnot exists... maybe something wrong when unzip the patch. '.format(fixpath))
             self.send(json.dumps({
@@ -121,11 +129,94 @@ class ASBUStatusConsumer(WebsocketConsumer):
                 'message': 'all binaries get signed successfully...'
             }))
             print('start to create .caz file.')
+            self.send(json.dumps({
+                'msgType': 'PatchStatus',
+                'message': 'start creating .caz file...'
+            }))
+
+            cazname = fixname + '.caz'
+            cazpath = os.path.join(settings.PATCH_ROOT_URL, cazname)
+            cazipxp = os.path.join(settings.PATCH_ROOT_URL, 'cazipxp.exe')
+            curdir = os.getcwd()
+            print('current dir {}'.format(curdir))
+            os.chdir(settings.PATCH_ROOT_URL)
+            cmd = '{} -w {}'.format(cazipxp, ' '.join(filter(lambda x : not x.lower().endswith(fixname.lower() + '.exe'),files)) + ' '  + cazname)
+            print(cmd)
+            try:
+                subprocess.run(cmd, check=True)
+            except subprocess.CalledProcessError as ex:
+                print('Error create .caz file, exit.')
+                self.send(json.dumps({
+                'msgType': 'Error',
+                'message': 'Error creating .caz file... {}'.format(ex)
+                }))
+                self.close()
+                return
+
+            if os.path.isfile(cazpath):
+                print('caz created successfully...')
+                self.send(json.dumps({
+                'msgType': 'PatchStatus',
+                'message': '{} created successfully.'.format(cazname)
+                }))
+            else:
+                print('failed to create caz file, exit.')
+                self.send(json.dumps({
+                'msgType': 'Error',
+                'message': 'Failed in creating {}...'.format(cazname)
+                }))
+                self.close()
+                return
+
+            apm = os.path.join(settings.PATCH_ROOT_URL, settings.APM_VERSION_PATH[self._version])
+            print('copy {} to apm folder {}'.format(cazname, apm))
+            shutil.move(cazpath, os.path.join(apm, cazname))
+
+            if os.path.exists(os.path.join(apm,fixname)):    
+                #shutil.rmtree(os.path.join(apm, fixname), onerror=remove_readonly)
+                subprocess.run('cmd /c rd /S /Q ' + os.path.join(apm,fixname))
+
+            createpatch = os.path.join(apm, 'CreatePatch.exe')
+            print('start create {}.exe'.format(fixname))
+            cmd = '{} -p {} {}'.format(createpatch, os.path.join(apm,cazname), fixname)
+            #needed by createpatch.exe, which need CA_APM be set in system vairable, this will require administrator previlege.
+            subprocess.run('setx CA_APM {} /M'.format(apm))
+            print(cmd)
+            subprocess.run(cmd)
+
+            exepath = os.path.join(apm,fixname+'\\MQA\\Build.000\\'+fixname+'.exe')
+            if os.path.isfile(exepath):
+                print('.exe file created successfully.')
+                self.send(json.dumps({
+                'msgType': 'PatchStatus',
+                'message': '{} created successfully.'.format(fixname+'.exe')
+                }))
+                shutil.copy(exepath, fixpath + '\\' + fixname+'.exe')
+                rst = utils.signBinary(fixpath + '\\' + fixname+'.exe')
+                if rst[1]:
+                    print('all good....')
+                    self.send(json.dumps({
+                        'msgType': 'PatchStatus',
+                        'message': '{} signed successfully.'.format(rst[0])
+                    }))
+                else:
+                    self.send(json.dumps({
+                        'msgType': 'Error',
+                        'message': 'Errror when sign {}.'.format(rst[0])
+                        }))
+            else:
+                print('failed to create the exe file, exit.')
+                exit()
+
         else:
             for ar in results:
                 r = ar.get()
                 if not r[1]:
                     print('problem during sign binary {}'.format(r[0]))
+                    self.send(json.dumps({
+                    'msgType': 'Error',
+                    'message': 'Error occurred when sign binary {}'.format(r[0])
+                }))
             self.close()
             return
 

@@ -53,15 +53,29 @@ def isBinarySigned(bin):
     else:
         return False
 
+def getRealBinaryName(binname):
+    #bin is like T00009527\ntagent.dll.2003.2008.2008R2
+    #or  C:\Projects\ArcservePatchBuilder\ArcservePatchBuilder\ArcservePatchBuilder\T00009527\CA.ARCserve.CommunicationFoundation.Impl.dll.gdb
+    #or  C:\Projects\ArcservePatchBuilder\ArcservePatchBuilder\ArcservePatchBuilder\T00009527\tree.dll
+    print('binname: ', binname)
+    binname = binname.split('\\')[-1]
+    idx = binname.lower().find('.dll')
+    if idx == -1:
+        idx = binname.lower().find('.exe')
+        if idx == -1:
+            raise Exception('not supported binary: {}'.format(binname))
+    
+    return binname[0:idx+4]
+
+
 def signBinary(bin):
     result = False
     patches = 'Patches'
     idx = bin.rfind('\\'+patches)
     idx_name = idx+ len(patches)+1
 
-    binname_ext = bin[bin.rindex('\\')+1 : ]
-    names = binname_ext.split('.')
-    binname = names[0] + '.' + names[1]
+    binname = getRealBinaryName(bin)
+    
     temp_folder = os.path.join(bin[:idx_name], bin[idx_name:].replace('\\','_'))
     print('temp_folder: ' + temp_folder)
     
@@ -77,7 +91,7 @@ def signBinary(bin):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36',
     }
     s = requests.Session()
-    s.auth =HttpNtlmAuth(settings.ACCOUNT,settings.PASSWORD)
+    s.auth =HttpNtlmAuth(settings.SIGN_ACCOUNT,settings.SIGN_PASSWORD)
     try:
         r = s.get(settings.SIGN_URL,headers = headers )
         print('get status code for {} is {}'.format(bin, r.status_code))
@@ -152,4 +166,6 @@ def signBinary(bin):
         if os.path.exists(temp_folder):
             shutil.rmtree(temp_folder)
             
-    return (temp_folder, result)
+    return (binname, result)
+
+

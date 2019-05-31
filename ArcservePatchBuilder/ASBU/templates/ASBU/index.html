@@ -61,8 +61,9 @@ $(document).ready(function(){
             return;
         }
         $("#results").show();
+        $("#results").html("");
         $("#results").append("<span'> Status as below: </span><br>");
-        $(this).prop('disabled', true);
+        //$(this).prop('disabled', true);
         var rindex1 = $("#patch").val().lastIndexOf('\\')
         var rindex2 = $("#patch").val().lastIndexOf('.')
         var patchname = $("#patch").val().substring(rindex1+1, rindex2)
@@ -77,6 +78,11 @@ $(document).ready(function(){
         var reader = new FileReader();
         var rawData = new ArrayBuffer();
         var end = chunk_size;    
+        if (tfile.size < end)
+        {
+            end = tfile.size;
+
+        }
         var slice = tfile.slice(0, end);
         var uploadbarExists = false;
         var unzipbarExists = false;

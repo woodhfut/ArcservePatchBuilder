@@ -25,7 +25,7 @@ SECRET_KEY = '5===lpqfh@mbz9o2!e58f!6e+(@z$2a3(*kvq0e074gl-n*1!y'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['10.57.10.31','localhost']
 
 
 # Application definition
@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ASBU',
     'channels',
+    'werkzeug_debugger_runserver',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -140,7 +142,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [('127.0.0.1', 6379)],
+            'hosts': [('10.57.58.38', 6379)],
         }
     }
 }
@@ -159,5 +161,4 @@ SIGN_PASSWORD ='godsaveme@123'
 
 ZIP_FILE_THRESHOLD = 100*1024*1024  #zip file larger than 100MB, we will not try to load it to memery and unzip directly. 
                                     #so that we can have progress update in GUI.
-
 

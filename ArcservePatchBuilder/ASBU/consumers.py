@@ -151,10 +151,16 @@ class ASBUStatusConsumer(WebsocketConsumer):
             'message': 'start unzip patch ' + self._name
         }))
         try:
+            tmp = self._name[0:-4]
+            tmppath = os.path.join(settings.PATCH_ROOT_URL, tmp)
+            if os.path.exists(tmppath):
+                shutil.rmtree(tmppath)
+            os.makedirs(tmppath, exist_ok=True)
+
             if os.path.getsize(os.path.join(settings.PATCH_ROOT_URL, self._name)) > settings.ZIP_FILE_THRESHOLD:
-                utils.unzipBigPatchFile(os.path.join(settings.PATCH_ROOT_URL, self._name), settings.PATCH_ROOT_URL, self)
+                utils.unzipBigPatchFile(os.path.join(settings.PATCH_ROOT_URL, self._name), tmppath, self)
             else:
-                shutil.unpack_archive(os.path.join(settings.PATCH_ROOT_URL, self._name), extract_dir=settings.PATCH_ROOT_URL)
+                shutil.unpack_archive(os.path.join(settings.PATCH_ROOT_URL, self._name), extract_dir=tmppath)
         except Exception as ex:
             self.send(json.dumps({
                 'msgType' : 'Error',

@@ -95,6 +95,12 @@ $(document).ready(function(){
                 $("#results").append("<span class='error'>" + msg['message'] +"</span><br>")
             else if (msgType == 'patchstatus')
                 $("#results").append("<span class='info'>" + msg['message'] +"</span><br>")
+            else if (msgType == 'patchsuccess')
+            {
+                console.log(msg['message']);
+                var lnk = "<span class='info'>You can download <a href='/asbu/patches/" + msg['message'].substring(0, msg['message'].length - 4) + "/'>" + msg['message'] +" </a> now! </span><br>";
+                $("#results").append(lnk)
+            }
             else if (msgType == 'uploadstatus')
             {    
                 var message = msg['message'].toLowerCase();

@@ -41,6 +41,11 @@ def unzipBigPatchFile(zipsrc, extract_dst, consumer):
                 'message': str(count)+'/' + str(filecount)
             }))
 
+def getEnvVar(name):
+    if name in os.environ:
+        return os.environ[name]
+    else:
+        return None
 
 def isBinarySigned(bin):
     cmd = os.path.join(settings.PATCH_ROOT_URL,'sigcheck.exe') +' ' + bin

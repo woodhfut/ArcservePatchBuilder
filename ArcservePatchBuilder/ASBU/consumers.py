@@ -6,6 +6,7 @@ import shutil
 from . import utils
 import subprocess
 
+
 from multiprocessing.pool import Pool, ThreadPool
 
 class ASBUStatusConsumer(WebsocketConsumer):
@@ -124,19 +125,20 @@ class ASBUStatusConsumer(WebsocketConsumer):
             return
         if len(results)==0 or all([x.get()[1] for x in results]):
             print('all binaries get signed successfully...')
-            self.send(json.dumps({
-                'msgType': 'PatchStatus',
-                'message': 'all binaries get signed successfully...'
-            }))
-            print('start to create .caz file.')
-            self.send(json.dumps({
-                'msgType': 'PatchStatus',
-                'message': 'start creating .caz file...'
-            }))
 
             cazname = fixname + '.caz'
             cazpath = os.path.join(settings.PATCH_ROOT_URL, cazname)
             cazipxp = os.path.join(settings.PATCH_ROOT_URL, 'cazipxp.exe')
+
+            self.send(json.dumps({
+                'msgType': 'PatchStatus',
+                'message': 'all binaries get signed successfully...'
+            }))
+            print('start to create {} file...'.format(cazname))
+            self.send(json.dumps({
+                'msgType': 'PatchStatus',
+                'message': 'start creating {} file...'.format(cazname)
+            }))
             curdir = os.getcwd()
             print('current dir {}'.format(curdir))
             os.chdir(settings.PATCH_ROOT_URL)
@@ -177,13 +179,27 @@ class ASBUStatusConsumer(WebsocketConsumer):
                 subprocess.run('cmd /c rd /S /Q ' + os.path.join(apm,fixname))
 
             createpatch = os.path.join(apm, 'CreatePatch.exe')
-            print('start create {}.exe'.format(fixname))
-            cmd = '{} -p {} {}'.format(createpatch, os.path.join(apm,cazname), fixname)
-            #needed by createpatch.exe, which need CA_APM be set in system vairable, this will require administrator previlege.
-            subprocess.run('setx CA_APM {} /M'.format(apm))
-            print(cmd)
-            subprocess.run(cmd)
+            print('start creating {}.exe'.format(fixname))
+            
+            ca_apm = utils.getEnvVar(settings.PATCH_CA_APM)
+            if  ca_apm and  ca_apm.lower() != apm.lower():
+                #needed by createpatch.exe, which need CA_APM be set in system vairable, this will require administrator previlege.
+                subprocess.run('setx CA_APM {} /M'.format(apm))
 
+            cmd = '{} -p {} {}'.format(createpatch, os.path.join(apm,cazname), fixname)
+            print(cmd)
+            self.send(json.dumps({
+                'msgType': 'PatchStatus',
+                'message': 'Start running command: {}.'.format(cmd)
+                }))
+            ret = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stderr = ret.stderr.decode('utf-8')
+            stdout = ret.stdout.decode('utf-8')
+            if len(stderr)> 0 or 'Failed' in stdout:
+                self.send(json.dumps({
+                    'msgType': 'Error',
+                    'message': stdout + '#####' + stderr
+                    }))
             exepath = os.path.join(apm,fixname+'\\MQA\\Build.000\\'+fixname+'.exe')
             if os.path.isfile(exepath):
                 print('.exe file created successfully.')
@@ -191,23 +207,38 @@ class ASBUStatusConsumer(WebsocketConsumer):
                 'msgType': 'PatchStatus',
                 'message': '{} created successfully.'.format(fixname+'.exe')
                 }))
-                shutil.copy(exepath, fixpath + '\\' + fixname+'.exe')
-                rst = utils.signBinary(fixpath + '\\' + fixname+'.exe')
+                patch = os.path.join(fixpath, fixname+'.exe')
+                shutil.copy(exepath, patch)
+                self.send(json.dumps({
+                'msgType': 'PatchStatus',
+                'message': 'Start signing {}...'.format(fixname+'.exe')
+                }))
+                rst = utils.signBinary(patch)
                 if rst[1]:
                     print('all good....')
                     self.send(json.dumps({
                         'msgType': 'PatchStatus',
                         'message': '{} signed successfully.'.format(rst[0])
                     }))
+                    self.send(json.dumps({
+                        'msgType': 'PatchSuccess',
+                        'message': os.path.basename(rst[0])
+                    }))
                 else:
                     self.send(json.dumps({
                         'msgType': 'Error',
                         'message': 'Errror when sign {}.'.format(rst[0])
                         }))
+                    self.close()
+                    return
             else:
                 print('failed to create the exe file, exit.')
-                exit()
-
+                self.send(json.dumps({
+                        'msgType': 'Error',
+                        'message': 'Failed to create {}.'.format(fixname+ '.exe')
+                        }))
+                self.close()
+                return
         else:
             for ar in results:
                 r = ar.get()
@@ -245,7 +276,7 @@ class ASBUStatusConsumer(WebsocketConsumer):
             tmp = self._name[0:-4]
             tmppath = os.path.join(settings.PATCH_ROOT_URL, tmp)
             if os.path.exists(tmppath):
-                shutil.rmtree(tmppath)
+                subprocess.run('cmd /c rd /S /Q ' + tmppath)
             os.makedirs(tmppath, exist_ok=True)
 
             if os.path.getsize(os.path.join(settings.PATCH_ROOT_URL, self._name)) > settings.ZIP_FILE_THRESHOLD:
@@ -255,7 +286,7 @@ class ASBUStatusConsumer(WebsocketConsumer):
         except Exception as ex:
             self.send(json.dumps({
                 'msgType' : 'Error',
-                'message' : 'Failed to unzip the patch {}, exit!\n {}'.format(self._name, ex)
+                'message' : 'Failed to unzip the patch {}, please refresh and try again later!\n {}'.format(self._name, ex)
             }))
             self.close()
             return
@@ -263,3 +294,5 @@ class ASBUStatusConsumer(WebsocketConsumer):
             'msgType' : 'PatchStatus',
             'message' : 'patch {} unzipped successfully.'.format(self._name)
         }))
+
+    

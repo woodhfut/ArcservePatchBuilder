@@ -65,7 +65,6 @@ def SendPatchEmail(recv, patchname):
     """.format(settings.ALLOWED_HOSTS[0], settings.HOST_PORT, patchname, patchname)
 
     message.attach(MIMEText(body, 'html', 'utf-8'))
-    print(body)
 
     conn = smtplib.SMTP(settings.ARCSERVE_SMTP_SERVER,settings.ARCSERVE_SMTP_PORT)
     conn.ehlo()

@@ -111,11 +111,11 @@
             }
         }
         wsock.onclose = function(e){
-            console.error('websocket get closed unexpectedly.')
-            
+            console.log('websocket get closed now.')
+            $("#results").append("<span class='info'>" + 'web socket closed.' + "</span>")
         }
         wsock.onerror = function(e){
-            $("#results").append("<span style='color:red'>" + 'error occurred in websocket..' + "</span>")
+            $("#results").append("<span class='error'>" + 'error occurred in websocket..' + "</span>")
         }
         wsock.onopen = function(e){
             //patch version

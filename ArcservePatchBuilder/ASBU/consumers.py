@@ -23,8 +23,12 @@ class ASBUStatusConsumer(WebsocketConsumer):
         self.accept()
     
     def disconnect(self, close_code):
-        pass
+        print('disconnect the socket...')
     
+    def close(self):
+        super().close()
+        print('close the socket...')
+        self._clean_up()
 
     def receive(self, text_data=None, bytes_data=None):
         if text_data:
@@ -61,6 +65,7 @@ class ASBUStatusConsumer(WebsocketConsumer):
                     self._uploadFinished = True
                     self._unzip_patchfile()
                     self._create_patch(self._name)
+                    self.close()
             else:
                 print('unknown receiver.')
         if bytes_data:
@@ -208,6 +213,11 @@ class ASBUStatusConsumer(WebsocketConsumer):
                     'msgType': 'PatchStatus',
                     'message': 'Start running command: {}.'.format(cmd)
                     }))
+                
+                self.send(json.dumps({
+                    'msgType': 'PatchStatus',
+                    'message': 'This might take a while, please wait...'
+                    }))
                 ret = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stderr = ret.stderr.decode('utf-8')
             stdout = ret.stdout.decode('utf-8')
@@ -331,4 +341,22 @@ class ASBUStatusConsumer(WebsocketConsumer):
             'message' : 'patch {} unzipped successfully.'.format(self._name)
         }))
 
-    
+    def _clean_up(self):
+        apm = os.path.join(settings.PATCH_ROOT_URL, settings.APM_VERSION_PATH[self._version])
+        #.caz file
+        cazfile = os.path.join(apm, self._name[0:-4]+'.caz')
+        fixfolder = os.path.join(apm, self._name[0:-4])
+        zipfile = os.path.join(settings.PATCH_ROOT_URL, self._name)
+        try:
+            if os.path.exists(cazfile):
+                os.remove(cazfile)
+            
+            if os.path.exists(fixfolder):
+                shutil.rmtree(fixfolder, ignore_errors=True)
+            
+            if os.path.exists(zipfile):
+                os.remove(zipfile)
+            
+        except Exception as ex:
+            #swallow the error.
+            print('Error in cleanup: ', ex)

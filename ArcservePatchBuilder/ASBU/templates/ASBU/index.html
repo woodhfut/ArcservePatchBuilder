@@ -112,7 +112,7 @@
         }
         wsock.onclose = function(e){
             console.log('websocket get closed now.')
-            $("#results").append("<span class='info'>" + 'web socket closed.' + "</span>")
+            //$("#results").append("<span class='info'>" + 'web socket closed.' + "</span>")
         }
         wsock.onerror = function(e){
             $("#results").append("<span class='error'>" + 'error occurred in websocket..' + "</span>")

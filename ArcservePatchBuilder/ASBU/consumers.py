@@ -77,10 +77,6 @@ class ASBUStatusConsumer(WebsocketConsumer):
             self._handle_patch_data(bytes_data)
                 
     def _create_patch(self, name):
-        self.send(json.dumps({
-            'msgType': 'PatchStatus',
-            'message': 'start creating patch...'
-        }))
         if name.find('.') == -1:
             fixname = name
         else:

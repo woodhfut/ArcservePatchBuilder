@@ -39,10 +39,11 @@ def unzipBigPatchFile(zipsrc, extract_dst, consumer):
             #     'msgType': 'UnzipStatus',
             #     'message': str(count)+'/' + str(filecount)
             # })
-            consumer.send(json.dumps({
-                'msgType': 'UnzipStatus',
-                'message': str(count)+'/' + str(filecount)
-            }))
+            if consumer:
+                consumer.send(json.dumps({
+                    'msgType': 'UnzipStatus',
+                    'message': str(count)+'/' + str(filecount)
+                }))
 
 def getEnvVar(name):
     if name in os.environ:

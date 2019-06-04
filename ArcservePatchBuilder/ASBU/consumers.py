@@ -181,6 +181,8 @@ class ASBUStatusConsumer(WebsocketConsumer):
 
             createpatch = os.path.join(apm, 'CreatePatch.exe')
             print('start creating {}.exe'.format(fixname))
+
+            #below code is added to notify GUI.
             lck = utils.Lock_obj.locked()
             if lck:
                 self.send(json.dumps({
@@ -293,10 +295,19 @@ class ASBUStatusConsumer(WebsocketConsumer):
                 subprocess.run('cmd /c rd /S /Q ' + tmppath)
             os.makedirs(tmppath, exist_ok=True)
 
-            if os.path.getsize(os.path.join(settings.PATCH_ROOT_URL, self._name)) > settings.ZIP_FILE_THRESHOLD:
-                utils.unzipBigPatchFile(os.path.join(settings.PATCH_ROOT_URL, self._name), tmppath, self)
-            else:
-                shutil.unpack_archive(os.path.join(settings.PATCH_ROOT_URL, self._name), extract_dir=tmppath)
+            if self._name.endswith('.zip'):
+                if os.path.getsize(os.path.join(settings.PATCH_ROOT_URL, self._name)) > settings.ZIP_FILE_THRESHOLD:
+                    utils.unzipBigPatchFile(os.path.join(settings.PATCH_ROOT_URL, self._name), tmppath, self)
+                else:
+                    shutil.unpack_archive(os.path.join(settings.PATCH_ROOT_URL, self._name), extract_dir=tmppath)
+            elif self._name.endswith('.caz'):
+                curdir = os.getcwd()
+                os.chdir(tmppath)
+                cazpath = os.path.join(settings.PATCH_ROOT_URL, 'cazipxp.exe')
+                patchpath = os.path.join(settings.PATCH_ROOT_URL, self._name)
+                cmd = '{} -u {}'.format(cazpath, patchpath)
+                subprocess.run(cmd)
+                os.chdir(curdir)
         except Exception as ex:
             self.send(json.dumps({
                 'msgType' : 'Error',

@@ -16,8 +16,8 @@ $(document).ready(function(){
     }
 
     $.validator.addMethod("patch", function(value, element){
-        return this.optional(element) || /^[tp][0-9]{8}/.test(value.toLowerCase());
-    }, "patch name is not correct. it should be <patch name>.zip, e.g.T00009527.zip  P00009527.zip.");
+        return this.optional(element) || /^[tp][0-9]{8}\.(caz|zip)$/.test(value.toLowerCase());
+    }, "patch name is not correct. it should be <patch name>.[zip|caz], e.g.T00009527.zip or P00009527.caz.");
 
     $("#uploadpatchform").validate({
         rules:{
@@ -29,7 +29,7 @@ $(document).ready(function(){
            
             patch: {
                 required: true,
-                extension: "zip",
+                //extension: "zip|caz",
                 patch: true
             },
         }, 

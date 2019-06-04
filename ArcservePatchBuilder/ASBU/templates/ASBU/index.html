@@ -145,12 +145,6 @@
         }
     }});
 $(document).ready(function(){
-    // $.validator.setDefaults({
-    // submitHandler: function() {
-    //     $("#uploadpatchform").submit();
-    // }
-    // });
-
     $.validator.methods.email = function(value, element){
         return this.optional(element) || value.toLowerCase().endsWith("arcserve.com");
     }
@@ -193,7 +187,27 @@ $(document).ready(function(){
             $("#email").prop('disabled', true);
         }
     });
+    
 });
+function emailcheck()
+    {
+        if ($("#chkemail").prop("checked"))
+        {
+            $("#chkemail").prop("checked", false);
+            $("#pemail").hide();
+            $("#lblemail").text("Email me after finish.");
+            $("#email").val("")
+            $("#email").prop('disabled', true);
+        }
+        else
+        {
+            $("#chkemail").prop("checked", true);
+            $("#lblemail").text("Enter your email address: ");
+            $("#email").prop('disabled', false);
+            $("#pemail").show();
+        }
+
+    }
 </script>
 <style>
     .error{
@@ -208,14 +222,22 @@ $(document).ready(function(){
 
 {% block content %}
 
-<h2>ASBU Patch Builder</h2>
+<h2>ASBU Patch Creater</h2>
 <form method="POST" id="uploadpatchform" enctype="multipart/form-data">
     {% csrf_token %}
         <div class="form-group">
-            <p>Note:<br>
-                your fix to Txxxxxxxx.zip <br>
-                examples....
+            <p><b>Description:</b><br>
+                &emsp;1. This is to help you automate the process of create ASBU patches. It will upload and sign all your binaries, create the patch, sign and 
+                share the created Txxxxxxxx.exe for you. <br>
+                &emsp;2. Chrome is preferred, other browers not tested. :)
         </p><br>
+            <p><b>Usage:</b><br>
+                &emsp;1. zip all your binaries and the Txxxxxxxx.txt file to Txxxxxxxx.zip or Txxxxxxxx.caz like what you did to create a patch.<br>
+                &emsp;2. select the corresponding ASBU version<br>
+                &emsp;3. enter the email address if you want to receive email after patch get created.<br>
+                &emsp;4. select the zip file and then submit. <br>
+                &emsp;5. after all finished, you will get the link to download the signed Txxxxxxxx.exe file <br>
+            </p><br>
         </div>
         <div class="form-group">
             <label for="version">Patch Version:</label><br>
@@ -229,7 +251,7 @@ $(document).ready(function(){
 
         <div class="form-group">
             <input type="checkbox" name ="chkemail" id="chkemail" />
-            <label for="email" id="lblemail">
+            <label for="email" id="lblemail" onclick="emailcheck()">
                 Email me after finish.
             </label>
             <label id=pemail hidden>

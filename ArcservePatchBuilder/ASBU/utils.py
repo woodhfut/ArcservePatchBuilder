@@ -11,6 +11,9 @@ import channels
 import channels.layers
 from asgiref.sync import async_to_sync
 import json
+import threading
+
+Lock_obj = threading.Lock()
 
 def unzipBigPatchFile(zipsrc, extract_dst, consumer):
     #print('channel name in utils: ' + channel_name)
@@ -46,6 +49,14 @@ def getEnvVar(name):
         return os.environ[name]
     else:
         return None
+
+def IsProcessRunning(proName):
+    cmd = 'tasklist /FI "imagename eq {}"'.format(proName)
+    output = subprocess.check_output(cmd)
+    if proName in output.decode('utf-8'):
+        return True
+    else:
+        return False
 
 def isBinarySigned(bin):
     cmd = os.path.join(settings.PATCH_ROOT_URL,'sigcheck.exe') +' ' + bin

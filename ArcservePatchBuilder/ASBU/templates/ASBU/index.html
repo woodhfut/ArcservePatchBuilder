@@ -94,7 +94,17 @@ $(document).ready(function(){
             if ( msgType== 'error')
                 $("#results").append("<span class='error'>" + msg['message'] +"</span><br>")
             else if (msgType == 'patchstatus')
-                $("#results").append("<span class='info'>" + msg['message'] +"</span><br>")
+            {
+                var message = msg['message']
+                if (message.toLowerCase() == 'pending')
+                {
+                    $("#results").append("<span class='info'>...</span>")
+                }
+                else
+                {
+                    $("#results").append("<span class='info'>" + msg['message'] +"</span><br>")
+                }
+            }
             else if (msgType == 'patchsuccess')
             {
                 console.log(msg['message']);

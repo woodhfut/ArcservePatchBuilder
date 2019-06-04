@@ -5,7 +5,8 @@ import os
 import shutil
 from . import utils
 import subprocess
-
+import time
+import threading
 
 from multiprocessing.pool import Pool, ThreadPool
 
@@ -180,19 +181,32 @@ class ASBUStatusConsumer(WebsocketConsumer):
 
             createpatch = os.path.join(apm, 'CreatePatch.exe')
             print('start creating {}.exe'.format(fixname))
-            
-            ca_apm = utils.getEnvVar(settings.PATCH_CA_APM)
-            if  ca_apm and  ca_apm.lower() != apm.lower():
-                #needed by createpatch.exe, which need CA_APM be set in system vairable, this will require administrator previlege.
-                subprocess.run('setx CA_APM {} /M'.format(apm))
+            lck = utils.Lock_obj.locked()
+            if lck:
+                self.send(json.dumps({
+                    'msgType': 'PatchStatus',
+                    'message': 'Another patch is creating, pending...',
+                    }))
+            while lck:
+                self.send(json.dumps({
+                    'msgType': 'PatchStatus',
+                    'message': 'Pending',
+                    }))
+                time.sleep(5)
+                lck = utils.Lock_obj.locked()
+            with utils.Lock_obj:
+                ca_apm = utils.getEnvVar(settings.PATCH_CA_APM)
+                if  ca_apm and  ca_apm.lower() != apm.lower():
+                    #needed by createpatch.exe, which need CA_APM be set in system vairable, this will require administrator previlege.
+                    subprocess.run('setx CA_APM {} /M'.format(apm))
 
-            cmd = '{} -p {} {}'.format(createpatch, os.path.join(apm,cazname), fixname)
-            print(cmd)
-            self.send(json.dumps({
-                'msgType': 'PatchStatus',
-                'message': 'Start running command: {}.'.format(cmd)
-                }))
-            ret = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                cmd = '{} -p {} {}'.format(createpatch, os.path.join(apm,cazname), fixname)
+                print(cmd)
+                self.send(json.dumps({
+                    'msgType': 'PatchStatus',
+                    'message': 'Start running command: {}.'.format(cmd)
+                    }))
+                ret = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stderr = ret.stderr.decode('utf-8')
             stdout = ret.stdout.decode('utf-8')
             if len(stderr)> 0 or 'Failed' in stdout:

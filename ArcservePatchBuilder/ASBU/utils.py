@@ -12,6 +12,10 @@ import channels.layers
 from asgiref.sync import async_to_sync
 import json
 import threading
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 
 Lock_obj = threading.Lock()
 
@@ -44,6 +48,32 @@ def unzipBigPatchFile(zipsrc, extract_dst, consumer):
                     'msgType': 'UnzipStatus',
                     'message': str(count)+'/' + str(filecount)
                 }))
+
+def SendPatchEmail(recv, patchname):
+    message = MIMEMultipart('alternative')
+    message['From'] = settings.SIGN_ACCOUNT
+    message['To'] = recv
+    message['Subject'] = 'Patch {} created...'.format(patchname)
+
+    body = """
+    <html>
+        <head></head>
+        <body>
+            <p>You can download <a href='http://{}:{}/asbu/patches/{}'>{}</a> now.</p>
+        </body>
+    </html>
+    """.format(settings.ALLOWED_HOSTS[0], settings.HOST_PORT, patchname, patchname)
+
+    message.attach(MIMEText(body, 'html', 'utf-8'))
+    print(body)
+
+    conn = smtplib.SMTP(settings.ARCSERVE_SMTP_SERVER,settings.ARCSERVE_SMTP_PORT)
+    conn.ehlo()
+    conn.starttls()
+    conn.ehlo()
+    conn.login(settings.SIGN_ACCOUNT,settings.SIGN_PASSWORD)
+    conn.sendmail(settings.SIGN_ACCOUNT,[recv],message.as_string())
+    conn.quit()
 
 def getEnvVar(name):
     if name in os.environ:

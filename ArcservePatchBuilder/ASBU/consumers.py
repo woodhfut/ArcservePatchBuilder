@@ -240,6 +240,17 @@ class ASBUStatusConsumer(WebsocketConsumer):
                         'msgType': 'PatchSuccess',
                         'message': os.path.basename(rst[0])
                     }))
+                    #send email if it is checked
+                    if self._email:
+                        self.send(json.dumps({
+                        'msgType': 'PatchStatus',
+                        'message': 'Start sending email to {}.'.format(self._email)
+                        }))
+                        utils.SendPatchEmail(self._email, fixname)
+                        self.send(json.dumps({
+                            'msgType': 'PatchStatus',
+                            'message': 'Email sent to {} successfully.'.format(self._email)
+                        }))
                 else:
                     self.send(json.dumps({
                         'msgType': 'Error',

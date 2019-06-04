@@ -25,8 +25,8 @@ SECRET_KEY = '5===lpqfh@mbz9o2!e58f!6e+(@z$2a3(*kvq0e074gl-n*1!y'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['10.57.10.31','localhost']
-
+ALLOWED_HOSTS = ['localhost','10.57.10.31']
+HOST_PORT = 8000
 
 # Application definition
 
@@ -127,6 +127,8 @@ PATCH_SUPPORTED_VERSIONS = ['18.0', '17.5.1', '17.5', '17.0']
 PATCH_SUPPORTED_EXTENSIONS = ['caz', 'zip']
 PATCH_ROOT_URL = os.path.join(BASE_DIR, 'Patches')
 PATCH_CA_APM = 'CA_APM'
+ARCSERVE_SMTP_SERVER = 'smtp.live.com'
+ARCSERVE_SMTP_PORT = 587
 
 CELERY_BROKER_URL = 'redis://10.57.51.87:6379/0'
 CELERY_RESULT_BACKEND = 'redis://10.57.51.87:6379/1'

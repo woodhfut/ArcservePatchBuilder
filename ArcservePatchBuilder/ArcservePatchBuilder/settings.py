@@ -154,7 +154,7 @@ APM_VERSION_PATH = {
     '17.0' : r'APM\APMr17\build7067',
     '17.5' : r'APM\APMr17.5\build7861',
     '17.5.1' : r'APM\APMr17.5SP1\build7903',
-    '18.0': r'APM\APMr18\APMr18\build8007',
+    '18.0': r'APM\APMr18\build8007',
 }
 
 SIGN_URL = 'http://rmdm-bldvm-l901:8000/sign4dev.aspx'

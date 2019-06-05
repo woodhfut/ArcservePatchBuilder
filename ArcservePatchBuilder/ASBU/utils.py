@@ -91,12 +91,14 @@ def IsProcessRunning(proName):
 def isBinarySigned(bin):
     cmd = os.path.join(settings.PATCH_ROOT_URL,'sigcheck.exe') +' ' + bin
     ret = subprocess.run(cmd, stdout = subprocess.PIPE)
-
-    result = ret.stdout.decode('utf-8')
-    signed_output = 'Verified:\tSigned'
-    if signed_output in result:
-        return True
-    else:
+    try:
+        result = ret.stdout.decode('utf-8')
+        signed_output = 'Verified:\tSigned'
+        if signed_output in result:
+            return True
+        else:
+            return False
+    except:
         return False
 
 def getRealBinaryName(binname):

@@ -199,7 +199,7 @@ class ASBUStatusConsumer(WebsocketConsumer):
                 lck = utils.Lock_obj.locked()
             with utils.Lock_obj:
                 ca_apm = utils.getEnvVar(settings.PATCH_CA_APM)
-                if  ca_apm and  ca_apm.lower() != apm.lower():
+                if not ca_apm or (ca_apm and  ca_apm.lower() != apm.lower()):
                     #needed by createpatch.exe, which need CA_APM be set in system vairable, this will require administrator previlege.
                     subprocess.run('setx CA_APM {} /M'.format(apm))
 

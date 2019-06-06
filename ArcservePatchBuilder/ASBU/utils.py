@@ -49,9 +49,9 @@ def unzipBigPatchFile(zipsrc, extract_dst, consumer):
                     'message': str(count)+'/' + str(filecount)
                 }))
 
-def SendPatchEmail(recv, patchname):
+def SendPatchEmail(recv, patchname, username, passwd):
     message = MIMEMultipart('alternative')
-    message['From'] = settings.SIGN_ACCOUNT
+    message['From'] = username
     message['To'] = recv
     message['Subject'] = 'Patch {} created...'.format(patchname)
 
@@ -70,8 +70,8 @@ def SendPatchEmail(recv, patchname):
     conn.ehlo()
     conn.starttls()
     conn.ehlo()
-    conn.login(settings.SIGN_ACCOUNT,settings.SIGN_PASSWORD)
-    conn.sendmail(settings.SIGN_ACCOUNT,[recv],message.as_string())
+    conn.login(username,passwd)
+    conn.sendmail(username,[recv],message.as_string())
     conn.quit()
 
 def getEnvVar(name):
@@ -116,7 +116,7 @@ def getRealBinaryName(binname):
     return binname[0:idx+4]
 
 
-def signBinary(bin):
+def signBinary(bin, username, passwd):
     result = False
     patches = 'Patches'
     idx = bin.rfind('\\'+patches)
@@ -139,7 +139,7 @@ def signBinary(bin):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36',
     }
     s = requests.Session()
-    s.auth =HttpNtlmAuth(settings.SIGN_ACCOUNT,settings.SIGN_PASSWORD)
+    s.auth =HttpNtlmAuth(username,passwd)
     try:
         r = s.get(settings.SIGN_URL,headers = headers )
         print('get status code for {} is {}'.format(bin, r.status_code))

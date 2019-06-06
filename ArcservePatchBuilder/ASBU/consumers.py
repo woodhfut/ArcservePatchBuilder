@@ -17,6 +17,8 @@ class ASBUStatusConsumer(WebsocketConsumer):
         self._email = None
         self._name = None
         self._uploadFinished = False
+        self._username = None
+        self._passwd = None
 
     def connect(self):
         print('channel name: ' + self.channel_name)
@@ -49,6 +51,13 @@ class ASBUStatusConsumer(WebsocketConsumer):
                     'msgType': 'PatchStatus',
                     'message' : 'received email: ' + self._email
                 }))
+            elif receiver =='account':
+                self._username = text_data_json['username']
+                self._passwd = text_data_json['password']
+                self.send(json.dumps({
+                    'msgType': 'PatchStatus',
+                    'message' : 'received username: ' + self._passwd
+                }))
             elif receiver == 'patch':
                 if 'name' in text_data_json:
                     print('name:' + text_data_json['name'])
@@ -66,6 +75,7 @@ class ASBUStatusConsumer(WebsocketConsumer):
                     self._unzip_patchfile()
                     self._create_patch(self._name)
                     self.close()
+                
             else:
                 print('unknown receiver.')
         if bytes_data:
@@ -106,9 +116,9 @@ class ASBUStatusConsumer(WebsocketConsumer):
             
             pool = ThreadPool(processes=len(files))
             for f in files:
-                if not f.lower().endswith('.txt') and not utils.isBinarySigned(f):
+                if not f.lower().endswith('.txt') and not utils.isBinarySigned(f) and self._username and self._passwd:
                     print('trying to sign file ' + f)
-                    ar = pool.apply_async(utils.signBinary, (f,))
+                    ar = pool.apply_async(utils.signBinary, (f, self._username, self._passwd))
                     results.append(ar)
             
             pool.close()
@@ -231,39 +241,46 @@ class ASBUStatusConsumer(WebsocketConsumer):
                 }))
                 patch = os.path.join(fixpath, fixname+'.exe')
                 shutil.copy(exepath, patch)
-                self.send(json.dumps({
-                'msgType': 'PatchStatus',
-                'message': 'Start signing {}...'.format(fixname+'.exe')
-                }))
-                rst = utils.signBinary(patch)
-                if rst[1]:
-                    print('all good....')
+
+                if self._username and self._passwd:
                     self.send(json.dumps({
-                        'msgType': 'PatchStatus',
-                        'message': '{} signed successfully.'.format(rst[0])
+                    'msgType': 'PatchStatus',
+                    'message': 'Start signing {}...'.format(fixname+'.exe')
                     }))
-                    self.send(json.dumps({
-                        'msgType': 'PatchSuccess',
-                        'message': os.path.basename(rst[0])
-                    }))
-                    #send email if it is checked
-                    if self._email:
-                        self.send(json.dumps({
-                        'msgType': 'PatchStatus',
-                        'message': 'Start sending email to {}.'.format(self._email)
-                        }))
-                        utils.SendPatchEmail(self._email, fixname)
+                    rst = utils.signBinary(patch, self._username, self._passwd)
+                    if rst[1]:
+                        print('all good....')
                         self.send(json.dumps({
                             'msgType': 'PatchStatus',
-                            'message': 'Email sent to {} successfully.'.format(self._email)
+                            'message': '{} signed successfully.'.format(rst[0])
                         }))
-                else:
+                    else:
+                        self.send(json.dumps({
+                            'msgType': 'Error',
+                            'message': 'Errror when sign {}.'.format(rst[0])
+                            }))
+                        self.close()
+                        return
+
+                self.send(json.dumps({
+                    'msgType': 'PatchSuccess',
+                    'message': fixname+'.exe',
+                }))
+                #send email if it is checked
+                if self._email:
                     self.send(json.dumps({
-                        'msgType': 'Error',
-                        'message': 'Errror when sign {}.'.format(rst[0])
-                        }))
-                    self.close()
-                    return
+                    'msgType': 'PatchStatus',
+                    'message': 'Start sending email to {}.'.format(self._email)
+                    }))
+                    if self._username and self._passwd:
+                        utils.SendPatchEmail(self._email, fixname, self._username, self._passwd)
+                    else:
+                        utils.SendPatchEmail(self._email, fixname, settings.EMAIL_ACCOUNT, settings.EMAIL_PASSWORD)
+                    self.send(json.dumps({
+                        'msgType': 'PatchStatus',
+                        'message': 'Email sent to {} successfully.'.format(self._email)
+                    }))
+                
             else:
                 print('failed to create the exe file, exit.')
                 self.send(json.dumps({

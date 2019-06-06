@@ -131,7 +131,14 @@
                     'data': $("#email").val(),
                 }));
             }
-            
+            if ($("#chksign").is(":checked"))
+            {
+                wsock.send(JSON.stringify({
+                    'receiver': 'account', 
+                    'username': $("#username").val(),
+                    'password': $("#password").val(),
+                }));
+            }
             reader.onload = function(e){
                 rawData = e.target.result;
                 wsock.send(rawData);
@@ -188,7 +195,46 @@ $(document).ready(function(){
         }
     });
     
+    $("#chksign").click(function(){
+        if($(this).is(":checked")){
+            $("#lblsign").text("Enter your arcserve account and password: ");
+            $("#username").prop('disabled', false);
+            $("#password").prop('disabled', false);
+            $("#account").show();
+        }
+        else{
+            $("#account").hide();
+            $("#lblsign").text("Sign my binaries.");
+            $("#username").val("")
+            $("#username").prop('disabled', true);
+            $("#password").val("")
+            $("#password").prop('disabled', true);
+        }
+    });
 });
+
+function signcheck()
+{
+    if ($("#chksign").prop("checked"))
+    {
+        $("#chksign").prop("checked", false);
+        $("#account").hide();
+        $("#lblsign").text("Sign my binaries.");
+        $("#username").val("")
+        $("#username").prop('disabled', true);
+        $("#password").val("")
+        $("#password").prop('disabled', true);
+    }
+    else
+    {
+        $("#chksign").prop("checked", true);
+        $("#lblsign").text("Enter your arcserve account and password: ");
+        $("#username").prop('disabled', false);
+        $("#password").prop('disabled', false);
+        $("#account").show();
+    }
+}
+
 function emailcheck()
     {
         if ($("#chkemail").prop("checked"))
@@ -257,6 +303,19 @@ function emailcheck()
             <label id=pemail hidden>
                 <input name="email" type="email" id="email" >
             </label>
+        </div>
+        <div class="form-group">
+            <input type="checkbox" name ="chksign" id="chksign" />
+            <label id="lblsign" onclick="signcheck()">
+                Sign my binaries.
+            </label>
+            <div id=account hidden>
+                <label class = 'info'>Note: This is needed to sign in http://rmdm-bldvm-l901:8000/sign4dev.aspx to sign the binaries.</label><br>
+                <label>Account:</label>
+                <input name="username" type="text" id="username" >
+                <label>Password:</label>
+                <input name="password" type="password" id="password" >
+            </div>
         </div>
         <div class="form-group">
 

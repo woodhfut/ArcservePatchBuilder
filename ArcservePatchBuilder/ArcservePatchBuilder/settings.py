@@ -25,8 +25,8 @@ SECRET_KEY = '5===lpqfh@mbz9o2!e58f!6e+(@z$2a3(*kvq0e074gl-n*1!y'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost','10.57.10.31']
-HOST_PORT = 8000
+ALLOWED_HOSTS = ['10.57.10.31','localhost']
+HOST_PORT = 80
 
 # Application definition
 
@@ -158,8 +158,8 @@ APM_VERSION_PATH = {
 }
 
 SIGN_URL = 'http://rmdm-bldvm-l901:8000/sign4dev.aspx'
-SIGN_ACCOUNT = 'qiang.liu@arcserve.com'
-SIGN_PASSWORD ='<passwd>'
+EMAIL_ACCOUNT = 'qiang.liu@arcserve.com'
+EMAIL_PASSWORD ='gomyboy@123'
 
 ZIP_FILE_THRESHOLD = 100*1024*1024  #zip file larger than 100MB, we will not try to load it to memery and unzip directly. 
                                     #so that we can have progress update in GUI.

@@ -56,7 +56,7 @@ class ASBUStatusConsumer(WebsocketConsumer):
                 self._passwd = text_data_json['password']
                 self.send(json.dumps({
                     'msgType': 'PatchStatus',
-                    'message' : 'received username: ' + self._passwd
+                    'message' : 'received username: ' + self._username
                 }))
             elif receiver == 'patch':
                 if 'name' in text_data_json:

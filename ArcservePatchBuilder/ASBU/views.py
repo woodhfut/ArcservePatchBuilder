@@ -12,7 +12,7 @@ def index(request):
     return render(request, 'ASBU/index.html', {})
 
 
-def Share_patch(self, patch):
+def Share_patch(request, patch):
     try:
         patchpath = os.path.join(settings.PATCH_ROOT_URL, patch)
         patchexepath = os.path.join(patchpath, patch+'.exe')

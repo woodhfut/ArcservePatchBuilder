@@ -153,7 +153,10 @@
     }});
 $(document).ready(function(){
     $.validator.methods.email = function(value, element){
-        return this.optional(element) || value.toLowerCase().endsWith("arcserve.com");
+        return this.optional(element) || value.toLowerCase().split(";").every(function(addr)
+        {
+            return addr.length == 0 || addr.endsWith('@arcserve.com');
+        });
     }
 
     $.validator.addMethod("patch", function(value, element){

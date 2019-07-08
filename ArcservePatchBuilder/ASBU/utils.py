@@ -53,13 +53,13 @@ def SendPatchEmail(recv, patchname, username, passwd):
     message = MIMEMultipart('alternative')
     message['From'] = username
     message['To'] = recv
-    message['Subject'] = 'Patch {} created...'.format(patchname)
+    message['Subject'] = 'Patch {} is ready...'.format(patchname)
 
     body = """
     <html>
         <head></head>
         <body>
-            <p>You can download <a href='http://{}:{}/asbu/patches/{}'>{}</a> now.</p>
+            <p>You can download <a href='https://{}:{}/asbu/patches/{}'>{}</a> now.</p>
         </body>
     </html>
     """.format(settings.ALLOWED_HOSTS[0], settings.HOST_PORT, patchname, patchname)

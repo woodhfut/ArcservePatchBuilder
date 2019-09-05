@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ASBU',
+    'UDP',
     'channels',
     'werkzeug_debugger_runserver',
     'django_extensions',
@@ -123,7 +124,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-PATCH_SUPPORTED_VERSIONS = ['18.0', '17.5.1', '17.5', '17.0']
+PATCH_SUPPORTED_VERSIONS = ['18.0', '17.5.1', '17.5', '17.0','7.0','6.5U4']
 PATCH_SUPPORTED_EXTENSIONS = ['caz', 'zip']
 PATCH_ROOT_URL = os.path.join(BASE_DIR, 'Patches')
 PATCH_CA_APM = 'CA_APM'
@@ -155,6 +156,8 @@ APM_VERSION_PATH = {
     '17.5' : r'APM\APMr17.5\build7861',
     '17.5.1' : r'APM\APMr17.5SP1\build7903',
     '18.0': r'APM\APMr18\build8007',
+    '7.0': r'APM\UDP7\CreatePatchBuild',
+    '6.5U4':r'APM\Tungsten\CreatePatchBuild'
 }
 
 SIGN_URL = 'http://rmdm-bldvm-l901:8000/sign4dev.aspx'

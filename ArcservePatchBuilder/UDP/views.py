@@ -1,16 +1,11 @@
 from django.shortcuts import render
-from django.http import HttpResponse
-from .forms import UploadPatchForm
-from django.conf import settings
 import os
-import threading
-from .tasks import add
 from wsgiref.util import FileWrapper
-
-
+from django.http import HttpResponse
+from django.conf import settings
+# Create your views here.
 def index(request):
-    return render(request, 'ASBU/index.html', {})
-
+    return render(request, 'UDP/index.html', {})
 
 def Share_patch(request, patch):
     try:

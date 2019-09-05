@@ -22,6 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'^$', views.index, name='index'),
     url(r'^(?i)asbu/', include('ASBU.urls')),
-    
+    url(r'^(?i)udp/', include('UDP.urls')),
 
 ]

@@ -329,19 +329,27 @@ class ASBUStatusConsumer(WebsocketConsumer):
                 subprocess.run('cmd /c rd /S /Q ' + tmppath)
             os.makedirs(tmppath, exist_ok=True)
 
-            if self._name.endswith('.zip'):
+            if self._name.lower().endswith('.zip'):
                 if os.path.getsize(os.path.join(settings.PATCH_ROOT_URL, self._name)) > settings.ZIP_FILE_THRESHOLD:
                     utils.unzipBigPatchFile(os.path.join(settings.PATCH_ROOT_URL, self._name), tmppath, self)
                 else:
                     shutil.unpack_archive(os.path.join(settings.PATCH_ROOT_URL, self._name), extract_dir=tmppath)
-            elif self._name.endswith('.caz'):
+            elif self._name.lower().endswith('.caz'):
                 curdir = os.getcwd()
                 os.chdir(tmppath)
                 cazpath = os.path.join(settings.PATCH_ROOT_URL, 'cazipxp.exe')
                 patchpath = os.path.join(settings.PATCH_ROOT_URL, self._name)
                 cmd = '{} -u {}'.format(cazpath, patchpath)
+                print(cmd)
                 subprocess.run(cmd)
                 os.chdir(curdir)
+            else:
+                self.send(json.dumps({
+                'msgType' : 'Error',
+                'message' : 'Unsupported zip format, only .zip and .caz supported!\n'
+            }))
+                self.close()
+                return
         except Exception as ex:
             self.send(json.dumps({
                 'msgType' : 'Error',
